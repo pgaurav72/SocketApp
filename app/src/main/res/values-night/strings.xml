@@ -1,5 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SocketApp</string>
     <string name="enter_message">Enter message</string>
     <string name="disconnect">Disconnect</string>
     <string name="message">Message</string>

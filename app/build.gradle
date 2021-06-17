@@ -23,12 +23,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility sourceCompatibility
+        targetCompatibility targetCompatibility
     }
 
-    viewBinding {
-        enabled = true
+    buildFeatures {
+        viewBinding = true
     }
 
 }
@@ -41,9 +41,6 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
-    // Socket.io
-    implementation ('io.socket:socket.io-client:2.0.1') {
-        exclude group: 'org.json', module: 'json'
-    }
-
+    // My socket library
+    implementation project(':socket')
 }

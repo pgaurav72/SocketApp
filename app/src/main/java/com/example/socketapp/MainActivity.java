@@ -4,7 +4,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -15,6 +14,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 
 import com.example.socket.MySocket;
+import com.example.socket.ResponseCallback;
 import com.example.socketapp.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ArrayList<MessageModel> mMessageModelArrayList;
     private MySocket mySocket;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,9 +53,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         disconnectButton.setOnClickListener(this);
 
         mMessageModelArrayList = new ArrayList<>();
-
-        messageModel = new MessageModel();
         mySocket = new MySocket();
+
     }
 
     @Override
@@ -66,9 +66,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 // Call library methods
                 // 1. Start socket connection
                 // 2. Send Message
-                mySocket.launch();
-                mySocket.sendMessage(message);
-                messageModel.setMessage(message);
+                mySocket.connect();
+//                mySocket.sendMessage(message);
+                messageModel = new MessageModel();
+                messageModel.setMessage("SENT: "+message);
                 mMessageModelArrayList.add(messageModel);
                 messageAdapter = new MessageAdapter(mContext, mMessageModelArrayList);
                 messagesRecyclerView.setAdapter(messageAdapter);
@@ -86,11 +87,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void receivedMessage(){
-        String receivedMessage = mySocket.receivedMessage();
-        Log.d(TAG, "receivedMessage: "+receivedMessage);
-        messageModel.setMessage(receivedMessage);
-        mMessageModelArrayList.add(messageModel);
-        messagesRecyclerView.setAdapter(messageAdapter);
-        messageAdapter.notifyDataSetChanged();
+
+        try {
+            mySocket.mMessageReceiver.getResponse(msg -> {
+                Log.d(TAG, "Response message: "+msg);
+                messageModel = new MessageModel();
+                messageModel.setMessage(msg);
+                mMessageModelArrayList.add(messageModel);
+                messagesRecyclerView.setAdapter(messageAdapter);
+                messageAdapter.notifyDataSetChanged();
+            });
+        }catch (Exception e) {
+            Log.d(TAG, "getResponseMessage: "+e.toString());
+        }
     }
+
+
 }

@@ -21,7 +21,6 @@ import java.util.Arrays;
 public class MySocket extends ViewModel {
 
     private static final String TAG = "socket_class";
-//    private Socket socket;
     private String message;
     private String url = "wss://echo.websocket.org/";
 
@@ -65,20 +64,6 @@ public class MySocket extends ViewModel {
             }
         });
     }
-
-//    public void sendMessage(String message){
-//        dispatchQueue.dispatchAsync(() -> {
-//            try {
-//                WebSocketMessageWriter messageWriter = mWebSocket.getMessageWriter();
-//                messageWriter.writeText(message);
-//                Log.d(TAG, "sendMessage: "+message);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                Log.d(TAG, "sendMessage: "+e.getMessage());
-//            }
-//        });
-//
-//    }
 
     public void disconnect() {
         Log.d(TAG, "DISCONNECTING: ");

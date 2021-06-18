@@ -17,7 +17,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 
 import com.example.socket.MySocket;
-import com.example.socket.ResponseCallback;
 import com.example.socketapp.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
@@ -35,8 +34,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MessageModel messageModel;
     private MessageAdapter messageAdapter;
     private ArrayList<MessageModel> mMessageModelArrayList;
-//    private MySocket mySocket;
-
     private MySocket mySocket;
 
 

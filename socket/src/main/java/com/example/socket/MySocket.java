@@ -2,6 +2,10 @@ package com.example.socket;
 
 import android.os.AsyncTask;
 import android.util.Log;
+
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.ViewModel;
+
 import com.kaazing.net.ws.WebSocket;
 import com.kaazing.net.ws.WebSocketFactory;
 import com.kaazing.net.ws.WebSocketMessageReader;
@@ -12,7 +16,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 
-public class MySocket {
+public class MySocket extends ViewModel {
 
     private static final String TAG = "socket_class";
 //    private Socket socket;
@@ -23,7 +27,9 @@ public class MySocket {
     private DispatchQueue dispatchQueue;
     private MessageReceiver messageReceiver;
     private String responseMessage;
-    public MessageReceiver mMessageReceiver;
+
+    private MutableLiveData<String> mutableLiveData =
+            new MutableLiveData<>();
 
     public void connect(){
         dispatchQueue = new DispatchQueue("Async Dispatch Queue");
@@ -40,7 +46,7 @@ public class MySocket {
 
                 WebSocketMessageReader messageReader = mWebSocket.getMessageReader();
                 messageReceiver = new MessageReceiver(messageReader);
-                mMessageReceiver = messageReceiver;
+                new Thread(messageReceiver).start();
             } catch (Exception e) {
                 Log.d(TAG, "Connect exception: "+e.toString());
                 Log.d(TAG, "Exception message: "+e.getMessage());
@@ -65,15 +71,6 @@ public class MySocket {
 //
 //    }
 
-
-    public String getResponseMessage(){
-        new Thread(() -> {
-            Log.d(TAG, "Getting Response Message");
-
-        }).start();
-        return responseMessage;
-    }
-
     public void disconnect() {
         Log.d(TAG, "DISCONNECTING: ");
         if (dispatchQueue.isAlive()){
@@ -96,8 +93,12 @@ public class MySocket {
         }).start();
     }
 
+    public MutableLiveData<String> getLiveResponse() {
+        return mutableLiveData;
+    }
 
-    public class MessageReceiver{
+
+    public class MessageReceiver implements Runnable{
 
         private static final String TAG = "message_receiver";
         private WebSocketMessageReader messageReader;
@@ -106,16 +107,15 @@ public class MySocket {
             this.messageReader = reader;
         }
 
-        public void getResponse(ResultListener<String> resultListener){
-
-            new Thread(() -> {
-                try {
-                    while (messageReader.next() != WebSocketMessageType.EOS) {
-                        CharSequence charSequence = messageReader.getText();
-                        message = charSequence.toString();
-                        Log.d(TAG, "Received Message: "+message);
-                        resultListener.listen(message);
-                    }
+        @Override
+        public void run() {
+            try {
+                while (messageReader.next() != WebSocketMessageType.EOS) {
+                    CharSequence charSequence = messageReader.getText();
+                    message = charSequence.toString();
+                    Log.d(TAG, "Received Message: "+message);
+                    mutableLiveData.setValue(message);
+                }
 //            if (!closedExplicitly) {
 //
 //                // Connection got closed due to either of the cases
@@ -128,13 +128,15 @@ public class MySocket {
 //                    loginDialog.cancel();
 //                }
 //            }
-                }
-                catch (Exception ex) {
-                    ex.printStackTrace();
-                    Log.d(TAG, "run: "+ex.getMessage());
-                }
-            }).start();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+                Log.d(TAG, "run: "+ex.getMessage());
+            }
         }
+
+//        public void getResponse(ResultListener<String> resultListener){
+//        }
 
     }
 

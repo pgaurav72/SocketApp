@@ -1,6 +1,9 @@
 package com.example.socketapp;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -32,6 +35,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MessageModel messageModel;
     private MessageAdapter messageAdapter;
     private ArrayList<MessageModel> mMessageModelArrayList;
+//    private MySocket mySocket;
+
     private MySocket mySocket;
 
 
@@ -40,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         mainBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(mainBinding.getRoot());
+        mySocket = new ViewModelProvider(this).get(MySocket.class);
         mContext = this;
         messagesRecyclerView = mainBinding.messagesRecyclerView;
         disconnectButton = mainBinding.disconnectButton;
@@ -54,6 +60,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mMessageModelArrayList = new ArrayList<>();
         mySocket = new MySocket();
+
+
+        Observer<String> liveDataObserver= s -> {
+            Log.d(TAG, "onChanged: ");
+            String response = s;
+            Log.d(TAG, "Response Message: "+s);
+            messageModel = new MessageModel();
+            messageModel.setMessage(response);
+            mMessageModelArrayList.add(messageModel);
+            messagesRecyclerView.setAdapter(messageAdapter);
+            messageAdapter.notifyDataSetChanged();
+        };
+        mySocket.getLiveResponse().observe(this,liveDataObserver);
 
     }
 
@@ -75,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 messagesRecyclerView.setAdapter(messageAdapter);
                 messageAdapter.notifyDataSetChanged();
                 sendMessageEditText.getText().clear();
-                receivedMessage();
             }else {
                 sendMessageEditText.setError("Enter a message");
             }
@@ -83,22 +101,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }else if (v == disconnectButton){
             Log.d(TAG, "Disconnect Button Clicked");
             mySocket.disconnect();
-        }
-    }
-
-    private void receivedMessage(){
-
-        try {
-            mySocket.mMessageReceiver.getResponse(msg -> {
-                Log.d(TAG, "Response message: "+msg);
-                messageModel = new MessageModel();
-                messageModel.setMessage(msg);
-                mMessageModelArrayList.add(messageModel);
-                messagesRecyclerView.setAdapter(messageAdapter);
-                messageAdapter.notifyDataSetChanged();
-            });
-        }catch (Exception e) {
-            Log.d(TAG, "getResponseMessage: "+e.toString());
         }
     }
 

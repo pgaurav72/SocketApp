@@ -1,6 +1,8 @@
 package com.example.socket;
 
-import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
@@ -25,13 +27,15 @@ public class MySocket extends ViewModel {
 
     private WebSocket mWebSocket;
     private DispatchQueue dispatchQueue;
-    private MessageReceiver messageReceiver;
-    private String responseMessage;
 
-    private MutableLiveData<String> mutableLiveData =
+    private MutableLiveData<String> responseMutableLiveData =
+            new MutableLiveData<>();
+    private MutableLiveData<Boolean> connectionLiveData =
+            new MutableLiveData<>();
+    private MutableLiveData<Boolean> resultStatusLiveData =
             new MutableLiveData<>();
 
-    public void connect(){
+    public void connect(String message){
         dispatchQueue = new DispatchQueue("Async Dispatch Queue");
         dispatchQueue.start();
         dispatchQueue.dispatchAsync(() -> {
@@ -40,13 +44,18 @@ public class MySocket extends ViewModel {
                 mWebSocket = webSocketFactory.createWebSocket(URI.create(url));
                 mWebSocket.connect();
                 Log.d(TAG, "CONNECTED");
+
+                new Handler(Looper.getMainLooper())
+                        .post(() -> connectionLiveData.setValue(true));
+
+                WebSocketMessageReader messageReader = mWebSocket.getMessageReader();
+                MessageReceiver messageReceiver = new MessageReceiver(messageReader);
+                new Thread(messageReceiver).start();
+
                 WebSocketMessageWriter messageWriter = mWebSocket.getMessageWriter();
                 messageWriter.writeText(message);
                 Log.d(TAG, "sendMessage: "+message);
 
-                WebSocketMessageReader messageReader = mWebSocket.getMessageReader();
-                messageReceiver = new MessageReceiver(messageReader);
-                new Thread(messageReceiver).start();
             } catch (Exception e) {
                 Log.d(TAG, "Connect exception: "+e.toString());
                 Log.d(TAG, "Exception message: "+e.getMessage());
@@ -83,7 +92,9 @@ public class MySocket extends ViewModel {
         new Thread(() -> {
             try {
                 mWebSocket.close();
-                Log.d(TAG, "DISCONNECTED");;
+                Log.d(TAG, "DISCONNECTED");
+                new Handler(Looper.getMainLooper())
+                        .post(() -> connectionLiveData.setValue(false));
             } catch (IOException e) {
                 Log.d(TAG, "run: "+e.getMessage());
             }
@@ -94,8 +105,17 @@ public class MySocket extends ViewModel {
     }
 
     public MutableLiveData<String> getLiveResponse() {
-        return mutableLiveData;
+        return responseMutableLiveData;
     }
+
+    public MutableLiveData<Boolean> getConnectionStatus() {
+        return connectionLiveData;
+    }
+
+    public MutableLiveData<Boolean> getResponseStatus() {
+        return resultStatusLiveData;
+    }
+
 
 
     public class MessageReceiver implements Runnable{
@@ -114,7 +134,16 @@ public class MySocket extends ViewModel {
                     CharSequence charSequence = messageReader.getText();
                     message = charSequence.toString();
                     Log.d(TAG, "Received Message: "+message);
-                    mutableLiveData.setValue(message);
+
+                    if (!TextUtils.isEmpty(message)){
+                        new Handler(Looper.getMainLooper())
+                                .post(() -> resultStatusLiveData.setValue(true));
+                    }else {
+                        new Handler(Looper.getMainLooper())
+                                .post(() -> resultStatusLiveData.setValue(false));
+                    }
+
+                    new Handler(Looper.getMainLooper()).post(() -> responseMutableLiveData.setValue(message));
                 }
 //            if (!closedExplicitly) {
 //
@@ -132,11 +161,10 @@ public class MySocket extends ViewModel {
             catch (Exception ex) {
                 ex.printStackTrace();
                 Log.d(TAG, "run: "+ex.getMessage());
+                new Handler(Looper.getMainLooper())
+                        .post(() -> resultStatusLiveData.setValue(false));
             }
         }
-
-//        public void getResponse(ResultListener<String> resultListener){
-//        }
 
     }
 

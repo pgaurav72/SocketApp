@@ -62,17 +62,55 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mySocket = new MySocket();
 
 
-        Observer<String> liveDataObserver= s -> {
+        // Response message observer
+        Observer<String> responseObserver = s -> {
             Log.d(TAG, "onChanged: ");
             String response = s;
             Log.d(TAG, "Response Message: "+s);
             messageModel = new MessageModel();
-            messageModel.setMessage(response);
+            messageModel.setMessage("RECEIVED: "+response);
             mMessageModelArrayList.add(messageModel);
             messagesRecyclerView.setAdapter(messageAdapter);
             messageAdapter.notifyDataSetChanged();
         };
-        mySocket.getLiveResponse().observe(this,liveDataObserver);
+        mySocket.getLiveResponse().observe(this,responseObserver);
+
+        // Connection status observer
+        Observer<Boolean> connectionStatusObserver = aBoolean -> {
+            if (aBoolean){
+                Log.d(TAG, "CONNECTED");
+                messageModel = new MessageModel();
+                messageModel.setMessage("CONNECTED");
+            }else {
+                Log.d(TAG, "DISCONNECTED");
+                messageModel = new MessageModel();
+                messageModel.setMessage("DISCONNECTED");
+            }
+            mMessageModelArrayList.add(messageModel);
+            messagesRecyclerView.setAdapter(messageAdapter);
+            messageAdapter.notifyDataSetChanged();
+        };
+        mySocket.getConnectionStatus().observe(this, connectionStatusObserver);
+
+        // Response status observer
+        Observer<Boolean> responseStatusObserver = aBoolean -> {
+            if (true){
+                Log.d(TAG, "SUCCESSFUL");
+                messageModel = new MessageModel();
+                messageModel.setMessage("SUCCESSFUL");
+                mMessageModelArrayList.add(messageModel);
+                messagesRecyclerView.setAdapter(messageAdapter);
+                messageAdapter.notifyDataSetChanged();
+            }else {
+                Log.d(TAG, "UNSUCCESSFUL");
+                messageModel = new MessageModel();
+                messageModel.setMessage("UNSUCCESSFUL");
+                mMessageModelArrayList.add(messageModel);
+                messagesRecyclerView.setAdapter(messageAdapter);
+                messageAdapter.notifyDataSetChanged();
+            }
+        };
+        mySocket.getResponseStatus().observe(this, responseStatusObserver);
 
     }
 
@@ -85,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 // Call library methods
                 // 1. Start socket connection
                 // 2. Send Message
-                mySocket.connect();
+                mySocket.connect(message);
 //                mySocket.sendMessage(message);
                 messageModel = new MessageModel();
                 messageModel.setMessage("SENT: "+message);

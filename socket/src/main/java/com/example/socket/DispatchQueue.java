@@ -16,7 +16,7 @@ public class DispatchQueue extends HandlerThread {
      * after call to start() to ensure the thread is ready.
      */
     public void waitUntilReady() {
-
+        handler = new Handler(getLooper());
     }
 
     /**
@@ -24,7 +24,6 @@ public class DispatchQueue extends HandlerThread {
      * The runnable will be run in a first in first out basis.
      */
     public void dispatchAsync(Runnable task) {
-        handler = new Handler(getLooper());
         handler.post(task);
     }
 

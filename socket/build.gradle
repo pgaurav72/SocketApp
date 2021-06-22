@@ -35,13 +35,9 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
-    // Socket
-//    implementation ('io.socket:socket.io-client:2.0.1') {
-//        exclude group: 'org.json', module: 'json'
-//    }
-    // Websocket
+    // WebSocket Library
     implementation 'com.kaazing:enterprise.android.client.all:4.1.2'
     // Lifecycle components
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
-    annotationProcessor 'androidx.lifecycle:lifecycle-compiler:2.3.1'
+    annotationProcessor 'androidx.lifecycle:lifecycle-common-java8:2.3.1'
 }

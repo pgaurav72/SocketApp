@@ -15,13 +15,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import com.example.socket.AttestrFlowxEventListener;
 import com.example.socket.MySocket;
 import com.example.socketapp.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, AttestrFlowxEventListener {
 
     private ActivityMainBinding mainBinding;
     private Context mContext;
@@ -42,7 +44,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         mainBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(mainBinding.getRoot());
-        mySocket = new ViewModelProvider(this).get(MySocket.class);
         mContext = this;
         messagesRecyclerView = mainBinding.messagesRecyclerView;
         disconnectButton = mainBinding.disconnectButton;
@@ -56,58 +57,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         disconnectButton.setOnClickListener(this);
 
         mMessageModelArrayList = new ArrayList<>();
-        mySocket = new MySocket();
-
-
-        // Response message observer
-        Observer<String> responseObserver = s -> {
-            Log.d(TAG, "onChanged: ");
-            String response = s;
-            Log.d(TAG, "Response Message: "+s);
-            messageModel = new MessageModel();
-            messageModel.setMessage("RECEIVED: "+response);
-            mMessageModelArrayList.add(messageModel);
-            messagesRecyclerView.setAdapter(messageAdapter);
-            messageAdapter.notifyDataSetChanged();
-        };
-        mySocket.getLiveResponse().observe(this,responseObserver);
-
-        // Connection status observer
-        Observer<Boolean> connectionStatusObserver = aBoolean -> {
-            if (aBoolean){
-                Log.d(TAG, "CONNECTED");
-                messageModel = new MessageModel();
-                messageModel.setMessage("CONNECTED");
-            }else {
-                Log.d(TAG, "DISCONNECTED");
-                messageModel = new MessageModel();
-                messageModel.setMessage("DISCONNECTED");
-            }
-            mMessageModelArrayList.add(messageModel);
-            messagesRecyclerView.setAdapter(messageAdapter);
-            messageAdapter.notifyDataSetChanged();
-        };
-        mySocket.getConnectionStatus().observe(this, connectionStatusObserver);
-
-        // Response status observer
-        Observer<Boolean> responseStatusObserver = aBoolean -> {
-            if (true){
-                Log.d(TAG, "SUCCESSFUL");
-                messageModel = new MessageModel();
-                messageModel.setMessage("SUCCESSFUL");
-                mMessageModelArrayList.add(messageModel);
-                messagesRecyclerView.setAdapter(messageAdapter);
-                messageAdapter.notifyDataSetChanged();
-            }else {
-                Log.d(TAG, "UNSUCCESSFUL");
-                messageModel = new MessageModel();
-                messageModel.setMessage("UNSUCCESSFUL");
-                mMessageModelArrayList.add(messageModel);
-                messagesRecyclerView.setAdapter(messageAdapter);
-                messageAdapter.notifyDataSetChanged();
-            }
-        };
-        mySocket.getResponseStatus().observe(this, responseStatusObserver);
+        mySocket = new MySocket(this);
 
     }
 
@@ -139,5 +89,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+
+    @Override
+    public void connectStatus(Boolean connectionStatus) {
+        Log.d(TAG, "connectStatus: "+connectionStatus);
+        if (connectionStatus){
+            Toast.makeText(mContext, "Connected:", Toast.LENGTH_SHORT).show();
+            messageModel = new MessageModel();
+            messageModel.setMessage("CONNECTED");
+        }else {
+            Toast.makeText(mContext, "Disconnected:", Toast.LENGTH_SHORT).show();
+            messageModel = new MessageModel();
+            messageModel.setMessage("DISCONNECTED");
+        }
+        mMessageModelArrayList.add(messageModel);
+        messageAdapter = new MessageAdapter(mContext, mMessageModelArrayList);
+        messagesRecyclerView.setAdapter(messageAdapter);
+        messageAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onSuccess(String response) {
+        Log.d(TAG, "onSuccess: "+response);
+        Toast.makeText(mContext, response, Toast.LENGTH_SHORT).show();
+        messageModel = new MessageModel();
+        messageModel.setMessage("RECEIVED: "+response);
+        mMessageModelArrayList.add(messageModel);
+        messagesRecyclerView.setAdapter(messageAdapter);
+        messageAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onFailure(String exception) {
+        Log.d(TAG, "onFailure: "+exception);
+        Toast.makeText(mContext, "Failure:", Toast.LENGTH_SHORT).show();
+    }
 
 }

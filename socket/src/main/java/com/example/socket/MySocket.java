@@ -1,5 +1,6 @@
 package com.example.socket;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -18,7 +19,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 
-public class MySocket extends ViewModel {
+public class MySocket {
 
     private static final String TAG = "socket_class";
     private String message;
@@ -26,17 +27,16 @@ public class MySocket extends ViewModel {
 
     private WebSocket mWebSocket;
     private DispatchQueue dispatchQueue;
+    private AttestrFlowxEventListener attestrFlowxEventListener;
 
-    private MutableLiveData<String> responseMutableLiveData =
-            new MutableLiveData<>();
-    private MutableLiveData<Boolean> connectionLiveData =
-            new MutableLiveData<>();
-    private MutableLiveData<Boolean> resultStatusLiveData =
-            new MutableLiveData<>();
+    public MySocket(Context context){
+        this.attestrFlowxEventListener = (AttestrFlowxEventListener) context;
+    }
 
     public void connect(String message){
         dispatchQueue = new DispatchQueue("Async Dispatch Queue");
         dispatchQueue.start();
+        dispatchQueue.waitUntilReady();
         dispatchQueue.dispatchAsync(() -> {
             try {
                 WebSocketFactory webSocketFactory = WebSocketFactory.createWebSocketFactory();
@@ -45,7 +45,7 @@ public class MySocket extends ViewModel {
                 Log.d(TAG, "CONNECTED");
 
                 new Handler(Looper.getMainLooper())
-                        .post(() -> connectionLiveData.setValue(true));
+                        .post(() -> attestrFlowxEventListener.connectStatus(true));
 
                 WebSocketMessageReader messageReader = mWebSocket.getMessageReader();
                 MessageReceiver messageReceiver = new MessageReceiver(messageReader);
@@ -58,9 +58,11 @@ public class MySocket extends ViewModel {
             } catch (Exception e) {
                 Log.d(TAG, "Connect exception: "+e.toString());
                 Log.d(TAG, "Exception message: "+e.getMessage());
-                Log.d(TAG, "Exception message: "+e.getCause().toString());
                 Log.d(TAG, "Exception code: "+ Arrays.toString(e.getStackTrace()));
                 dispatchQueue.quit();
+
+                new Handler(Looper.getMainLooper())
+                        .post(() -> attestrFlowxEventListener.connectStatus(false));
             }
         });
     }
@@ -79,7 +81,7 @@ public class MySocket extends ViewModel {
                 mWebSocket.close();
                 Log.d(TAG, "DISCONNECTED");
                 new Handler(Looper.getMainLooper())
-                        .post(() -> connectionLiveData.setValue(false));
+                        .post(() -> attestrFlowxEventListener.connectStatus(false));
             } catch (IOException e) {
                 Log.d(TAG, "run: "+e.getMessage());
             }
@@ -88,20 +90,6 @@ public class MySocket extends ViewModel {
             }
         }).start();
     }
-
-    public MutableLiveData<String> getLiveResponse() {
-        return responseMutableLiveData;
-    }
-
-    public MutableLiveData<Boolean> getConnectionStatus() {
-        return connectionLiveData;
-    }
-
-    public MutableLiveData<Boolean> getResponseStatus() {
-        return resultStatusLiveData;
-    }
-
-
 
     public class MessageReceiver implements Runnable{
 
@@ -120,41 +108,20 @@ public class MySocket extends ViewModel {
                     message = charSequence.toString();
                     Log.d(TAG, "Received Message: "+message);
 
-                    if (!TextUtils.isEmpty(message)){
-                        new Handler(Looper.getMainLooper())
-                                .post(() -> resultStatusLiveData.setValue(true));
-                    }else {
-                        new Handler(Looper.getMainLooper())
-                                .post(() -> resultStatusLiveData.setValue(false));
-                    }
+                    new Handler(Looper.getMainLooper())
+                            .post(() -> attestrFlowxEventListener.onSuccess(message));
 
-                    new Handler(Looper.getMainLooper()).post(() -> responseMutableLiveData.setValue(message));
                 }
-//            if (!closedExplicitly) {
-//
-//                // Connection got closed due to either of the cases
-//                // - Server closing the connection because of authentication time out
-//                // - network failure
-//                webSocket = null;
-//                logMessage("Connection Closed!!");
-//                updateButtonsForDisconnected();
-//                if (loginDialog != null && !loginDialog.isHidden()) {
-//                    loginDialog.cancel();
-//                }
-//            }
             }
             catch (Exception ex) {
                 ex.printStackTrace();
                 Log.d(TAG, "run: "+ex.getMessage());
+
                 new Handler(Looper.getMainLooper())
-                        .post(() -> resultStatusLiveData.setValue(false));
+                        .post(() -> attestrFlowxEventListener.onFailure(ex.getMessage()));
             }
         }
 
     }
-
-
-
-
 
 }
